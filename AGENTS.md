@@ -6,6 +6,8 @@ This document provides comprehensive information for AI agents and developers wo
 
 **Tool Collection** is a repository of lightweight, self-contained HTML tools designed for rapid development and deployment. Each tool is a standalone file that requires no build process or external dependencies (except for Pico CSS from CDN).
 
+**Live URL**: https://tools.mzumquadrat.de
+
 ### Core Philosophy
 - **Simplicity First**: No frameworks, no build tools, no node_modules
 - **Self-Contained**: Each tool is independent and can run standalone

@@ -65,11 +65,11 @@
             <form id="rss-form">
                 <fieldset>
                     <label for="youtube-url">
-                        YouTube URL
+                        YouTube URL or Channel ID
                         <input 
                             id="youtube-url" 
-                            type="url" 
-                            placeholder="https://www.youtube.com/@channelname or playlist URL"
+                            type="text" 
+                            placeholder="UCxxxxxx, youtube.com/channel/UCxxx, or @handle"
                             required
                             autofocus
                         >
@@ -77,8 +77,9 @@
                     <small>
                         Supported formats:
                         <ul>
-                            <li>Channel: youtube.com/@handle, youtube.com/channel/ID, youtube.com/c/custom, youtube.com/user/username</li>
-                            <li>Playlist: youtube.com/playlist?list=ID</li>
+                            <li><strong>Direct:</strong> UCxxxxxx (channel ID), youtube.com/channel/UCxxx</li>
+                            <li><strong>Playlist:</strong> youtube.com/playlist?list=xxx</li>
+                            <li><strong>Handles:</strong> youtube.com/@handle (shows instructions to find channel ID)</li>
                         </ul>
                     </small>
                 </fieldset>
@@ -108,65 +109,32 @@
 
             /**
              * Extracts channel ID from various YouTube channel URL formats
-             * @param {string} url - YouTube channel URL
-             * @returns {Promise<string|null>} Channel ID or null if not found
+             * @param {string} url - YouTube channel URL or direct channel ID
+             * @returns {string|null} Channel ID or special marker
              */
-            const extractChannelId = async (url) => {
+            const extractChannelId = (url) => {
+                // Direct channel ID input (UC...)
+                if (/^UC[\w-]+$/.test(url.trim())) {
+                    return url.trim();
+                }
+
                 // Format: /channel/UC...
                 const channelMatch = url.match(/\/channel\/(UC[\w-]+)/);
                 if (channelMatch) return channelMatch[1];
 
-                // Format: /@handle - try to fetch and extract
+                // Format: /@handle
                 const handleMatch = url.match(/\/@([\w-]+)/);
                 if (handleMatch) {
-                    const handle = handleMatch[1];
-                    try {
-                        const channelId = await fetchChannelIdFromHandle(url);
-                        if (channelId) return channelId;
-                    } catch (error) {
-                        console.error('Failed to fetch channel ID:', error);
-                    }
-                    return 'HANDLE:' + handle; // Mark as handle for special error handling
+                    return 'HANDLE:' + handleMatch[1];
                 }
 
                 // Format: /c/customname or /user/username
                 const customMatch = url.match(/\/(c|user)\/([\w-]+)/);
                 if (customMatch) {
-                    return 'CUSTOM:' + customMatch[2]; // Mark as custom for special error handling
+                    return 'CUSTOM:' + customMatch[2];
                 }
 
                 return null;
-            };
-
-            /**
-             * Fetches channel ID from @handle URL by parsing the page
-             * @param {string} url - YouTube channel URL with @handle
-             * @returns {Promise<string|null>} Channel ID or null
-             */
-            const fetchChannelIdFromHandle = async (url) => {
-                try {
-                    const response = await fetch(url);
-                    const html = await response.text();
-                    
-                    // Try to extract channelId from various places in the HTML
-                    const patterns = [
-                        /"channelId":"(UC[\w-]+)"/,
-                        /"browseId":"(UC[\w-]+)"/,
-                        /<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]+)">/,
-                        /property="og:url" content="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]+)"/
-                    ];
-                    
-                    for (const pattern of patterns) {
-                        const match = html.match(pattern);
-                        if (match) {
-                            return match[1];
-                        }
-                    }
-                    
-                    return null;
-                } catch (error) {
-                    return null;
-                }
             };
 
             /**
@@ -240,7 +208,7 @@
              * Processes the YouTube URL and generates RSS feed
              * @param {string} url - YouTube URL from user input
              */
-            const processUrl = async (url) => {
+            const processUrl = (url) => {
                 try {
                     // Normalize URL
                     url = url.trim();
@@ -253,22 +221,22 @@
                         return;
                     }
 
-                    // Check if it's a channel URL
-                    const channelId = await extractChannelId(url);
+                    // Check if it's a channel URL or direct ID
+                    const channelId = extractChannelId(url);
                     if (channelId) {
                         // Check if it's a special marker for handles/custom URLs
                         if (channelId.startsWith('HANDLE:')) {
                             const handle = channelId.substring(7);
                             showError(`
-                                Unable to automatically convert @${handle} to a channel ID due to browser restrictions.
+                                <strong>@${handle} requires a channel ID</strong>
                                 <br><br>
-                                <strong>How to get your RSS feed:</strong>
-                                <ol>
-                                    <li>Visit <a href="https://www.youtube.com/@${handle}" target="_blank">youtube.com/@${handle}</a></li>
-                                    <li>Right-click the page and select "View Page Source" (or press Ctrl+U / Cmd+U)</li>
-                                    <li>Press Ctrl+F / Cmd+F and search for <code>"channelId"</code></li>
-                                    <li>Copy the ID that looks like <code>UC...</code></li>
-                                    <li>Come back here and paste: <code>https://www.youtube.com/channel/UC...</code></li>
+                                <strong>Quick steps to get your RSS feed:</strong>
+                                <ol style="text-align: left;">
+                                    <li>Visit <a href="https://www.youtube.com/@${handle}" target="_blank" rel="noopener">youtube.com/@${handle}</a></li>
+                                    <li>Right-click → <strong>View Page Source</strong> (or Ctrl+U / Cmd+U)</li>
+                                    <li>Search for <code>"channelId"</code> (Ctrl+F / Cmd+F)</li>
+                                    <li>Copy the ID starting with <code>UC</code> (e.g., <code>UCxxxxxxxxxxxxxx</code>)</li>
+                                    <li>Paste it directly here (just the ID or the full /channel/UC... URL)</li>
                                 </ol>
                             `);
                             return;
@@ -277,15 +245,15 @@
                         if (channelId.startsWith('CUSTOM:')) {
                             const custom = channelId.substring(7);
                             showError(`
-                                Unable to automatically convert custom URL to a channel ID.
+                                <strong>Custom URL requires a channel ID</strong>
                                 <br><br>
-                                <strong>How to get your RSS feed:</strong>
-                                <ol>
+                                <strong>Quick steps to get your RSS feed:</strong>
+                                <ol style="text-align: left;">
                                     <li>Visit the channel page</li>
-                                    <li>Right-click and select "View Page Source" (or press Ctrl+U / Cmd+U)</li>
-                                    <li>Search for <code>"channelId"</code></li>
-                                    <li>Copy the ID that looks like <code>UC...</code></li>
-                                    <li>Come back here and paste: <code>https://www.youtube.com/channel/UC...</code></li>
+                                    <li>Right-click → <strong>View Page Source</strong> (or Ctrl+U / Cmd+U)</li>
+                                    <li>Search for <code>"channelId"</code> (Ctrl+F / Cmd+F)</li>
+                                    <li>Copy the ID starting with <code>UC</code></li>
+                                    <li>Paste it directly here (just the ID or the full /channel/UC... URL)</li>
                                 </ol>
                             `);
                             return;
@@ -300,11 +268,12 @@
                     showError(`
                         Could not extract channel or playlist ID from the URL.
                         <br><br>
-                        Please use one of these formats:
-                        <ul>
-                            <li>youtube.com/@handle</li>
-                            <li>youtube.com/channel/UC...</li>
-                            <li>youtube.com/playlist?list=...</li>
+                        <strong>Accepted formats:</strong>
+                        <ul style="text-align: left;">
+                            <li><code>youtube.com/channel/UC...</code></li>
+                            <li><code>UC...</code> (just the channel ID)</li>
+                            <li><code>youtube.com/playlist?list=...</code></li>
+                            <li><code>youtube.com/@handle</code> (will show instructions)</li>
                         </ul>
                     `);
                 } catch (error) {
@@ -348,10 +317,10 @@
              * Initializes the tool
              */
             const init = () => {
-                form.addEventListener('submit', async (e) => {
+                form.addEventListener('submit', (e) => {
                     e.preventDefault();
                     const url = urlInput.value;
-                    await processUrl(url);
+                    processUrl(url);
                 });
 
                 copyButton.addEventListener('click', copyToClipboard);
