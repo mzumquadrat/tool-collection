@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hub page for all available tools in the collection">
+    <title>Tool Collection</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, var(--form-element-valid-border-color) 0%, var(--card-background-color) 100%);
+        }
+
+        .container {
+            max-width: 1000px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        article {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        article:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        article h3 {
+            margin-top: 0;
+        }
+
+        article p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        a.tool-link {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--form-element-valid-border-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        a.tool-link:hover {
+            background-color: var(--link-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            opacity: 0.7;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            opacity: 0.7;
+            border-top: 1px solid var(--muted-border-color);
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>🛠️ Tool Collection</h1>
+            <p>A collection of lightweight, self-contained HTML tools</p>
+        </header>
+
+        <section id="tools-section">
+            <div class="tools-grid" id="tools-grid">
+                <!-- Tools will be inserted here by JavaScript -->
+            </div>
+        </section>
+
+        <footer>
+            <p>Built with vanilla JavaScript, HTML, and <a href="https://picocss.com">Pico CSS</a></p>
+        </footer>
+    </main>
+
+    <script>
+        // Tool definitions
+        const tools = [
+            // Add your tools here in this format:
+            // {
+            //     name: "Tool Name",
+            //     file: "tool-name.html",
+            //     description: "Brief description of what this tool does."
+            // }
+        ];
+
+        /**
+         * Renders the tools grid
+         */
+        function renderTools() {
+            const grid = document.getElementById('tools-grid');
+            const section = document.getElementById('tools-section');
+
+            if (tools.length === 0) {
+                grid.innerHTML = '';
+                section.innerHTML = `
+                    <div class="empty-state">
+                        <p>No tools available yet. Create your first tool to get started!</p>
+                        <p><small>See README.md for instructions on creating a new tool.</small></p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = tools.map(tool => `
+                <article>
+                    <h3>${tool.name}</h3>
+                    <p>${tool.description}</p>
+                    <a href="${tool.file}" class="tool-link">Open Tool →</a>
+                </article>
+            `).join('');
+        }
+
+        // Render tools on page load
+        document.addEventListener('DOMContentLoaded', renderTools);
+    </script>
+</body>
+</html>
